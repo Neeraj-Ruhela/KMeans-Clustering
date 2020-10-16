@@ -8,7 +8,7 @@ warnings.filterwarnings("ignore")
 
 #reading the dataset
 
-df=pd.read_csv("cricketers.csv",header=0,delimiter='\t')
+df=pd.read_csv("cricketers(2).csv",header=0,delimiter='\t')
 df.head()
 #to view some basic statistical details like percentile, mean, std etc. of a data frame.
 df.describe()
