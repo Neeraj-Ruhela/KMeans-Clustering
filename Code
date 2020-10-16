@@ -1,0 +1,268 @@
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import math
+import random
+import warnings
+warnings.filterwarnings("ignore")
+
+#reading the dataset
+
+df=pd.read_csv("cricketers.csv",header=0,delimiter='\t')
+df.head()
+#to view some basic statistical details like percentile, mean, std etc. of a data frame.
+df.describe()
+
+
+#Checking presence of null values in columns of data frame
+
+if df.isnull().values.any()==False:
+    print("There are no null values in any column of dataframe.")
+# Total number of missing values
+#print(df.isnull().sum().sum())
+
+# As we are going to implement the knn algorithm which uses the distance measure so we need to normalize the features to bring all the attributes on same scale.
+# PLAYER column contains players names so we will drop this column in normalization, as we will not consider this feature in calculating distance
+X=df.drop(columns = ['PLAYER'],axis=1)
+# printing columns of new dataframe after dropping player column.
+col_new=X.columns
+col_new
+
+# Z-score Normalisation
+
+# here we are performing the z-score normalisation on all features.
+# z = (x-μ)/σ
+for item in col_new:
+    mean=X[item].mean()
+    std=X[item].std()
+    X[item]=(X[item]-mean)/std
+    
+# we will implement K-means algorithm using two attributes namely average_runs and bowling_economy.
+# Droping the features that we will not use for clustering.
+Feature=X.drop(columns=['matches_played', 'innings_batted', 'runs_scored', 'highest_runs',
+       'balls_faced', 'strike_rate', 'innings_bowled', 'overs',
+       'runs_given', 'wickets_obtained', 'average_runs_per_wicket '])
+# print data with attributes which we will use for clustering.
+print(Feature)
+
+
+#  The below function is designed to find clusters and to plot them using different colors
+def knn_algo(Scaled_Feature_data,k):
+    k=k
+    Feature=Scaled_Feature_data
+    # first we need to intialise the two initial means u1 and u2.
+
+    # Here we will generate k random numbers that we will use as random indices of data points,
+    # we will treat these k points from data as initial means.
+    i=1
+    #Defining variables
+    #random numbers will be stored in rand.
+    rand=[]
+    # we  will assign the intial means to cluster_mean.
+    cluster_mean=[]
+    
+    # While loop to generate k random numbers and assigning to rand
+    while i<=k:
+        ran=random.randrange(len(Feature['average_runs']))
+        if ran not in rand:
+            rand.append(ran)
+            i=i+1 
+            
+    # here we are assigning the intial means to cluster_mean
+    for m in range(k):
+        initial_mean=Feature['average_runs'][rand[m]], Feature['bowling_economy '][rand[m]]
+        # we are storing the k numbers(here k=2) of means in Cluster mean.
+        cluster_mean.append(initial_mean)
+        m=m+1
+    
+    print("initial centroids", cluster_mean)
+    
+    
+    # here we are assigning the intial means to cluster_mean
+    for m in range(k):
+        initial_mean=Feature['average_runs'][rand[m]], Feature['bowling_economy '][rand[m]]
+        # we are storing the k numbers(here k=2) of means in Cluster mean.
+        cluster_mean.append(initial_mean)
+        m=m+1
+    
+    
+    
+    #extracting total nuber of examples via rows of feature vector
+    # we will use this to create numpy array of euclidean distance, to store various distances wrt to all possibles centroids(k).
+    # r will have no of rows in feacture vector(examples count)
+    # c will have no of columns(features count)
+    r,c=Feature.shape
+    
+    #we are using Flag to stop the while loop. Flag will be set to 1 if the previous and new centeroids are same.
+    Flag=0
+    #intialisting the maximum interation count
+    max_itr=0
+    #Limiting the max_iterations count
+    Limit_max_itr=100
+    
+    while Flag!=1 and max_itr<=Limit_max_itr:
+         #calculating the euclidean distance of each point with available k(here k=2) centroids .
+         # euclidean distance (x, y), (a, b)) = √(x - a)² + (y - b)² 
+    
+         #euclidean distance will be stored in dif variable.
+        dif=[]
+        for i in range(k):
+            Dif_sqr_point_mean=((Feature-cluster_mean[i])**2)
+            Sum=Dif_sqr_point_mean['average_runs']+Dif_sqr_point_mean['bowling_economy ']
+            Sum=pd.DataFrame(Sum,columns=['Sum_value']) 
+            euclidean=[]
+            for item in Sum['Sum_value']:
+                Distance=(item**(1/2))
+                euclidean.append(Distance)
+            dif.append(euclidean)
+            #dif contains ditsance from both centroids. 
+            #colum1 is distance from 1st centroid and column2 contains disatnce from centroid2    
+        dif=np.array(dif).transpose()
+            #dif
+            
+            #Finding the minimum value of rows to find the shortest distance from centroids 
+            # shorter distance will help in finding cluster number to be assigned
+        Mini=np.amin(dif, axis=1)
+    
+            # DEFINING "rnk"("Membership")
+            #initialising to all values as zero.
+            #will change the corresponding values to 1 where disatnce in dif_variable(The euclidean distance) is minimum distance.
+        rnk=np.zeros((r, k))
+        for i in range(r):
+            for j in range(k):
+                if dif[i][j]== Mini[i]:
+                    rnk[i][j]=1
+                #rnk
+                
+    
+        #dif_respective_cluster_mean will contain distances of all points in cluster with the respective clusters centroid.
+        dif_respective_cluster_mean=[]
+        for item in range(k):
+            m=((Feature-cluster_mean[item])**2)
+            dif_respective_cluster_mean.append(m)    
+            
+            
+            
+        # H list will have distances from dif_respective_cluster_mean, will be considered for calculating j(cost function)
+        # the squared distance of points from respective cluster means.
+        H=[]
+        cl=0
+        for i in range(k):
+            for j in range(r):
+                if rnk[j][i]==1:
+                    h=np.array(dif_respective_cluster_mean[i])
+                    H.append(h[j])  
+            
+        #the cost function value
+        J=sum(sum(H))
+        print("The objective function J value at iteration number-",max_itr,"is", J)
+        
+        #creating features array to easily apply matrix properties
+        fe=np.array(Feature)
+        
+        # here we are adding data points to respective clusters based on rnk(membership).
+        clusters=[]
+        for i in range(k):
+            lis=[]
+            for j in range(r):
+                if rnk[j][i]==1:
+                    lis.append(fe[j])
+            clusters.append(lis)
+        
+          #we are assigning updated cluster means  to New_centroids
+        New_centroids=[]
+        for item in clusters:
+            mean=np.mean(item,axis=0)
+            #print(mean)
+            New_centroids.append(mean ) 
+            
+        # here we are checking whether the previous and updated centroids are same or not       
+        check2=0
+        for i in range(k):
+            for j in range(c):
+                if cluster_mean[i][j]==New_centroids[i][j]:
+                    check2=check2+1
+        
+        
+        if (check2/c)==k:
+            Flag=1
+            print("The previous and new centroids values are same at iteration number-",max_itr+1)
+        #else:
+            #print("centroids are not same")
+                   
+        
+         #Remember cluster_mean variable contains centroid in order to calculate distances.
+         #here we are assigning the new centroids values to cluster mean   
+        for j in range(k):
+            cluster_mean[j]=New_centroids[j]   
+        #Incrementing the iteration count
+        max_itr=max_itr+1
+        
+    # Printing the final centroids values
+    print("The final centoids for K=",k, "are ", New_centroids)
+    
+    # To print clusters use below lines
+    #print ("the clusters are:")
+    #for i in range(k):
+        #print("the", i, "cluster is ",clusters[i])
+        
+    # Ploting the clusters with respective centroids
+    X_plot=[]
+    Y_plot=[]
+    
+    for i in range(k):
+        temp=clusters[i]
+        for item in temp:
+            x,y=item
+            X_plot.append(x)
+            Y_plot.append(y)
+            
+    #print(X_plot)
+    #print(Y_plot)
+    #print(clusters)
+    
+    
+    # plotting Clusters with different colours
+    j=0
+    fig=plt.figure()
+    
+    for i in range(k):
+        colour=['r','b','g','m','cyan']
+        labels=['cluster1','cluster2','cluster3','cluster4','cluster5']
+        temp_x = []
+        temp_y = []
+        temp = clusters[i]
+        for item in temp:
+            x,y = item
+            temp_x.append(x)
+            temp_y.append(y)
+        j=len(clusters[i]),
+        #print(colour[i])
+        ax=fig.add_subplot(111)
+        ax.scatter(temp_x,temp_y,color=colour[i],label=labels[i])
+        
+    for item in range(len(New_centroids)): 
+        ax.scatter(New_centroids[item][0],New_centroids[item][1],  color='y')
+    
+    plt.xlabel(r'average_runs', fontsize=15)
+    plt.ylabel(r'bowling_economy ', fontsize=15)
+    plt.title('Clusters',fontsize=30)
+    plt.legend()    
+    plt.show()
+    return;
+ 
+ 
+    # CALLING THE FUNCTION WITH K=2
+ knn_algo(Scaled_Feature_data=Feature,k=2)
+ # The above line wil give output as 
+ '''initial centroids [(-1.037694740157197, 1.6990244701983), (-0.37469222209981945, 0.6348014075200467)]
+The objective function J value at iteration number- 0 is 262.65008792085814
+The objective function J value at iteration number- 1 is 140.65610546683354
+The objective function J value at iteration number- 2 is 117.78224746186689
+The objective function J value at iteration number- 3 is 100.03196482075472
+The objective function J value at iteration number- 4 is 95.62533074777342
+The objective function J value at iteration number- 5 is 93.61080719849978
+The previous and new centroids values are same at iteration number- 6
+The final centoids for K= 2 are  [array([-0.445311  ,  0.84775077]), array([ 0.54527878, -1.03806216])]'''
+# you will also get a scatter plot of clusters.(Notice we only used 2 features for clustering thats why we are able to plot the scatter_plot for clusters.
+ 
