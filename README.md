@@ -1,4 +1,4 @@
-# Knn-Clustering implementation from scratch
+# KMeans-Clustering implementation from scratch
 k-means clustering is a method of vector quantization, originally from signal processing, that aims to partition n observations into k clusters in which each observation belongs to the cluster with the nearest mean, serving as a prototype of the cluster.
 
 Consider the dataset comprising of 109 cricket players (attached here with assignment), (Data file is attached with name ‘cricketers(2).csv’. 
