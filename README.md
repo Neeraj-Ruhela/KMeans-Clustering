@@ -18,5 +18,3 @@ runs_given: total run given across all innings,
 wickets_obtained: total wickets obtained across all innings,
 average_runs_per_wicket: it is computed as (runs_given / wickets_obtained)
 bowling_economy: average runs scored per over
-![nrpic](https://github.com/Neeraj-Ruhela/KMeans-Clustering/assets/71966691/a34383e6-39e1-444e-8c93-04b699c5ffbf)
-
